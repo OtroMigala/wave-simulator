@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import 'katex/dist/katex.min.css';
-import { BlockMath, InlineMath } from 'react-katex';
+// Eliminamos la importación local de KaTeX CSS
+import katex from 'katex';
 
 const ComprehensiveWave = () => {
   const canvasRef = useRef(null);
   const animationFrameRef = useRef(null);
   const timeRef = useRef(0);
   
-  // Parámetros físicos fundamentales
   const [amplitude, setAmplitude] = useState(0.8);     // A
   const [frequency, setFrequency] = useState(2);       // f
   const [wavelength, setWavelength] = useState(100);   // λ
@@ -26,15 +25,40 @@ const ComprehensiveWave = () => {
   const energy = 0.5 * density * Math.pow(angularFrequency, 2) * Math.pow(amplitude, 2) * wavelength;
   const power = energy * frequency;
 
+  // Función para renderizar ecuaciones
+  const renderEquation = (equation, displayMode = true) => {
+    const html = katex.renderToString(equation, {
+      throwOnError: false,
+      displayMode: displayMode
+    });
+    return <div dangerouslySetInnerHTML={{ __html: html }} />;
+  };
+
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
+
+    // Ajustar el tamaño del canvas al contenedor
+    const resizeCanvas = () => {
+      const container = canvas.parentElement;
+      const { width: containerWidth, height: containerHeight } = container.getBoundingClientRect();
+      
+      canvas.width = containerWidth;
+      canvas.height = containerHeight;
+    };
+
+    // Llamar inicialmente y agregar listener
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
     const width = canvas.width;
     const height = canvas.height;
     const centerY = height / 2;
 
     const drawWave = (time) => {
       ctx.clearRect(0, 0, width, height);
+      
+      // Fondo negro
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, width, height);
 
@@ -44,20 +68,17 @@ const ComprehensiveWave = () => {
       ctx.arc(50, centerY, 20, 0, Math.PI * 2);
       ctx.fill();
 
-      // Visualización de partículas
+      // Dibujar partículas
       if (viewMode === 'particles' || viewMode === 'both') {
         for (let x = 80; x < width; x += 20) {
           for (let y = 50; y < height - 50; y += 20) {
             const distance = Math.sqrt((x - 50) ** 2 + (y - centerY) ** 2);
-            const damping = Math.exp(-dampingFactor * distance);
-            const displacement = amplitude * damping * 
-              Math.sin(waveNumber * distance - angularFrequency * time);
             
-            const intensity = (displacement + 1) / 2;
+            // Usamos la misma función de intensidad que WaveVisualization2D
+            const intensity = (Math.sin(distance / 50 - time) + 1) / 2;
             
-            ctx.fillStyle = `rgb(${Math.floor(255 * intensity)}, 
-                               ${Math.floor(255 * intensity)}, 
-                               ${Math.floor(255 * intensity)})`;
+            const brightness = Math.floor(255 * intensity);
+            ctx.fillStyle = `rgb(${brightness}, ${brightness}, ${brightness})`;
             ctx.beginPath();
             ctx.arc(x, y, 3, 0, Math.PI * 2);
             ctx.fill();
@@ -65,11 +86,11 @@ const ComprehensiveWave = () => {
         }
       }
 
-      // Visualización de frentes de onda
+      // Frentes de onda
       if (viewMode === 'waves' || viewMode === 'both') {
-        for (let radius = 0; radius < width; radius += wavelength/4) {
-          const intensity = Math.abs(Math.sin(waveNumber * radius - angularFrequency * time));
-          ctx.strokeStyle = `rgba(0, 255, 255, ${intensity * 0.5})`;
+        for (let radius = 0; radius < width; radius += 50) {
+          const intensity = (Math.sin(radius / 50 - time) + 1) / 2;
+          ctx.strokeStyle = `rgba(255, 255, 255, ${intensity})`;
           ctx.beginPath();
           ctx.arc(50, centerY, radius, 0, Math.PI * 2);
           ctx.stroke();
@@ -78,7 +99,7 @@ const ComprehensiveWave = () => {
     };
 
     const animate = () => {
-      timeRef.current += 0.02;
+      timeRef.current += 0.1;  // Velocidad de animación ajustada
       drawWave(timeRef.current);
       animationFrameRef.current = requestAnimationFrame(animate);
     };
@@ -89,8 +110,9 @@ const ComprehensiveWave = () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
+      window.removeEventListener('resize', resizeCanvas);
     };
-  }, [amplitude, frequency, wavelength, dampingFactor, viewMode, waveNumber, angularFrequency]);
+  }, [viewMode]);
 
   return (
     <Card className="w-full">
@@ -99,72 +121,45 @@ const ComprehensiveWave = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          <canvas
-            ref={canvasRef}
-            width={800}
-            height={400}
-            className="bg-gray-900 rounded-lg w-full"
-          />
+          <div className="w-full aspect-video relative">
+            <canvas
+              ref={canvasRef}
+              width={800}
+              height={400}
+              className="absolute inset-0 w-full h-full bg-gray-900 rounded-lg"
+              style={{ maxWidth: '100%', maxHeight: '100%' }}
+            />
+          </div>
 
-          {/* Ecuaciones fundamentales con react-katex */}
+          {/* Ecuaciones fundamentales */}
           <div className="bg-gray-50 p-6 rounded-lg text-lg overflow-x-auto">
-            <div className="space-y-6">
-              {/* Ecuación principal de onda */}
-              <div className="mb-4">
-                <BlockMath math={`y(x,t) = ${amplitude.toFixed(2)}\\sin(${waveNumber.toFixed(3)}x - ${angularFrequency.toFixed(2)}t)`} />
+            <div className="space-y-4">
+              {/* Ecuación principal con valores actuales */}
+              <div>
+                {renderEquation(`y(x,t) = ${amplitude.toFixed(2)}\\sin(${waveNumber.toFixed(3)}x - ${angularFrequency.toFixed(2)}t)`)}
               </div>
 
-              {/* Sistema de ecuaciones principales */}
-              <div className="mb-6">
-                <BlockMath
-                  math={`\\begin{cases} 
-                    k = \\frac{2\\pi}{\\lambda} = ${waveNumber.toFixed(3)} \\text{ rad/m}\\\\[1em]
-                    \\omega = 2\\pi f = ${angularFrequency.toFixed(2)} \\text{ rad/s}\\\\[1em]
-                    v = \\sqrt{\\frac{T}{\\mu}} = ${waveSpeed.toFixed(2)} \\text{ m/s}
-                  \\end{cases}`}
-                />
+              {/* Sistema de ecuaciones */}
+              <div>
+                {renderEquation(`\\begin{cases} 
+                  k = \\frac{2\\pi}{\\lambda} = ${waveNumber.toFixed(3)} \\text{ rad/m}\\\\[1em]
+                  \\omega = 2\\pi f = ${angularFrequency.toFixed(2)} \\text{ rad/s}\\\\[1em]
+                  v = \\sqrt{\\frac{T}{\\mu}} = ${waveSpeed.toFixed(2)} \\text{ m/s}
+                \\end{cases}`)}
               </div>
 
               {/* Ecuación de energía */}
-              <div className="mb-4">
-                <BlockMath
-                  math={`E = \\frac{1}{2}\\mu\\omega^2A^2\\lambda = ${energy.toFixed(3)} \\text{ J}`}
-                />
-              </div>
-
-              {/* Ecuación diferencial de onda */}
               <div>
-                <BlockMath
-                  math={"\\frac{\\partial^2 y}{\\partial t^2} = \\frac{T}{\\mu}\\frac{\\partial^2 y}{\\partial x^2}"} 
-                />
-                <div className="text-sm text-gray-600 mt-2">
-                  Ecuación diferencial de onda en una dimensión, donde:
-                  <ul className="list-disc pl-5 mt-1">
-                    <li>T es la tensión de la cuerda</li>
-                    <li>μ es la densidad lineal de masa</li>
-                    <li>∂²y/∂t² es la aceleración transversal</li>
-                    <li>∂²y/∂x² es la curvatura de la cuerda</li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* Relaciones adicionales */}
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <BlockMath
-                  math={`\\begin{aligned}
-                    v &= \\lambda f = \\frac{\\omega}{k} = ${waveSpeed.toFixed(2)} \\text{ m/s}\\\\[1em]
-                    T &= \\frac{1}{f} = ${period.toFixed(3)} \\text{ s}
-                  \\end{aligned}`}
-                />
+                {renderEquation(`E = \\frac{1}{2}\\mu\\omega^2A^2\\lambda = ${energy.toFixed(3)} \\text{ J}`)}
               </div>
             </div>
           </div>
 
-          {/* Control de parámetros */}
+          {/* Controles de parámetros */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span>Amplitud (<InlineMath math="A" />):</span>
+                <span>Amplitud {renderEquation('A', false)}:</span>
                 <span>{amplitude.toFixed(2)} m</span>
               </div>
               <Slider
@@ -178,7 +173,7 @@ const ComprehensiveWave = () => {
 
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span>Frecuencia (<InlineMath math="f" />):</span>
+                <span>Frecuencia {renderEquation('f', false)}:</span>
                 <span>{frequency} Hz</span>
               </div>
               <Slider
@@ -192,7 +187,7 @@ const ComprehensiveWave = () => {
 
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span>Longitud de onda (<InlineMath math="\lambda" />):</span>
+                <span>Longitud de onda {renderEquation('\\lambda', false)}:</span>
                 <span>{wavelength} m</span>
               </div>
               <Slider
@@ -206,7 +201,7 @@ const ComprehensiveWave = () => {
 
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span>Tensión (<InlineMath math="T" />):</span>
+                <span>Tensión {renderEquation('T', false)}:</span>
                 <span>{tension} N</span>
               </div>
               <Slider
@@ -220,7 +215,7 @@ const ComprehensiveWave = () => {
 
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span>Densidad lineal (<InlineMath math="\mu" />):</span>
+                <span>Densidad lineal {renderEquation('\\mu', false)}:</span>
                 <span>{density} kg/m</span>
               </div>
               <Slider
@@ -234,7 +229,7 @@ const ComprehensiveWave = () => {
 
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span>Factor de amortiguamiento (<InlineMath math="\alpha" />):</span>
+                <span>Factor de amortiguamiento {renderEquation('\\alpha', false)}:</span>
                 <span>{dampingFactor.toFixed(3)}</span>
               </div>
               <Slider
@@ -247,7 +242,7 @@ const ComprehensiveWave = () => {
             </div>
           </div>
 
-          {/* Controles de visualización */}
+          {/* Selector de modo de visualización */}
           <div className="flex space-x-4">
             <div>
               <input
@@ -290,16 +285,16 @@ const ComprehensiveWave = () => {
           {/* Panel de información calculada */}
           <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg text-sm">
             <div className="space-y-1">
-              <p>• Periodo (<InlineMath math="T" />): {period.toFixed(3)} s</p>
-              <p>• Frecuencia angular (<InlineMath math="\omega" />): {angularFrequency.toFixed(1)} rad/s</p>
-              <p>• Número de onda (<InlineMath math="k" />): {waveNumber.toFixed(3)} rad/m</p>
-              <p>• Velocidad de propagación (<InlineMath math="v" />): {waveSpeed.toFixed(1)} m/s</p>
+              <p>• Periodo {renderEquation('T', false)}: {period.toFixed(3)} s</p>
+              <p>• Frecuencia angular {renderEquation('\\omega', false)}: {angularFrequency.toFixed(1)} rad/s</p>
+              <p>• Número de onda {renderEquation('k', false)}: {waveNumber.toFixed(3)} rad/m</p>
+              <p>• Velocidad de propagación {renderEquation('v', false)}: {waveSpeed.toFixed(1)} m/s</p>
             </div>
             <div className="space-y-1">
-              <p>• Longitud de onda (<InlineMath math="\lambda" />): {wavelength} m</p>
-              <p>• Energía (<InlineMath math="E" />): {energy.toFixed(3)} J</p>
-              <p>• Potencia (<InlineMath math="P" />): {power.toFixed(3)} W</p>
-              <p>• <InlineMath math="v = \lambda f" /> = {(wavelength * frequency).toFixed(1)} m/s</p>
+              <p>• Longitud de onda {renderEquation('\\lambda', false)}: {wavelength} m</p>
+              <p>• Energía {renderEquation('E', false)}: {energy.toFixed(3)} J</p>
+              <p>• Potencia {renderEquation('P', false)}: {power.toFixed(3)} W</p>
+              <p>• {renderEquation('v = \\lambda f', false)} = {(wavelength * frequency).toFixed(1)} m/s</p>
             </div>
           </div>
         </div>

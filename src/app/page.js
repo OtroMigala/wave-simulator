@@ -1,7 +1,8 @@
 "use client"
 
 import WavePhysicsLab from '@/components/WavePhysicsLab'
-
+// app/layout.js o app/page.js
+import 'katex/dist/katex.min.css';
 export default function Home() {
   return (
     <main className="min-h-screen p-4 md:p-8">
