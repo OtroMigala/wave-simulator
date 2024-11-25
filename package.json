@@ -6,11 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "predeploy": "npm run build && type nul > out/.nojekyll",
+    "predeploy": "npm run build && echo.> out/.nojekyll",
     "deploy": "gh-pages -d out -t true"
   },
-   "homepage": "",
+  "homepage": "https://OtroMigala.github.io/wave-simulator",
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.1.2",
     "@radix-ui/react-label": "^2.1.0",
@@ -27,7 +26,6 @@
     "next": "15.0.3",
     "react": "19.0.0-rc-66855b96-20241106",
     "react-dom": "19.0.0-rc-66855b96-20241106",
-    "react-katex": "^3.0.1",
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
     "wave-simulator": "file:"
