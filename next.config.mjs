@@ -3,10 +3,19 @@
 const nextConfig = {
     output: 'export',
     basePath: '/wave-simulator',
+    assetPrefix: '/wave-simulator/',
     images: {
-      unoptimized: true
+      unoptimized: true,
+      domains: ['localhost']
+    },
+    reactStrictMode: true,
+    trailingSlash: true,
+    // Required for GitHub Pages
+    experimental: {
+      images: {
+        allowFutureImage: true
+      }
     }
   }
   
-  // Change module.exports to export default for .mjs files
   export default nextConfig
